@@ -1,11 +1,12 @@
 #include "Helper.hpp"
 
+
 // When given a program path, it returns the program name, else it returns the given path
 std::string programNameResolver(std::string programPath)
 {
     std::string programName;
 
-    int pos = programPath.find_last_of("/\\");
+    size_t pos = programPath.find_last_of("/\\");
     if (pos != std::string::npos)
     {
         return programName = programPath.substr(pos + 1);
@@ -96,12 +97,57 @@ std::string path_cat(beast::string_view base, beast::string_view path)
     return result;
 }
 
-// Template function implementation has been moved to the header file
-
-//------------------------------------------------------------------------------
-
 // Report a failure
 void fail(beast::error_code ec, char const *what)
 {
     std::cerr << what << ": " << ec.message() << "\n";
 }
+
+std::string sanitize_ip(const std::string& ip) {
+    std::string sanitized_ip = ip;
+    std::replace(sanitized_ip.begin(), sanitized_ip.end(), '.', '_');
+    return sanitized_ip;
+}
+
+std::string get_timestamp_str() {
+    auto now = std::chrono::system_clock::now();
+    auto itt = std::chrono::system_clock::to_time_t(now);
+    std::stringstream ss;
+    ss << std::put_time(std::localtime(&itt), "%Y-%m-%d %H:%M:%S"); // Local time with normal date format
+    return ss.str();
+}
+
+
+std::string save_file(const std::string& clientId, const std::string& ip, 
+    const std::string& content, const std::string& extension) {
+    std::string timestamp = get_timestamp_str();
+    std::string sanitized_ip = sanitize_ip(ip);
+    std::string file_name = clientId + "_" + sanitized_ip + "_" + timestamp + extension;
+    
+    fs::path dir = "./logs/" + clientId + "/";
+    fs::path file_path = dir / file_name;
+    
+    if (!fs::exists(dir)) {
+        fs::create_directories(dir);
+    }
+    
+    std::ofstream file(file_path, std::ios::app);
+    file << content;
+    return file_name;
+}
+
+bool is_valid_content_type(const std::string& content_type) {
+        static const std::vector<std::string> valid_types = {
+            "application/json",
+            "application/xml",
+            "text/plain"
+        };
+        return std::find(valid_types.begin(), valid_types.end(), content_type) != valid_types.end();
+}
+
+bool is_valid_log_level(const std::string& level) {
+        static const std::vector<std::string> valid_levels = {
+            "INFO", "ERROR", "DEBUG", "WARNING", "CRITICAL"
+        };
+        return std::find(valid_levels.begin(), valid_levels.end(), level) != valid_levels.end();
+    }

@@ -1,5 +1,6 @@
-#include "Listener.h"
+#include "Listener.hpp"
 #include "../Helper.hpp"
+#include "Session.hpp"
 
 //------------------------------------------------------------------------------
 
@@ -71,10 +72,25 @@ void listener::on_accept(beast::error_code ec, tcp::socket socket)
     }
     else
     {
+        // Store the client IP address
+        set_client_ip(get_socket_ip(socket));
+        
         // Create the session and run it
         std::make_shared<session>(std::move(socket), doc_root_)->run();
     }
 
     // Accept another connection
     do_accept();
+}
+
+
+std::string listener::get_socket_ip(tcp::socket &socket)
+{
+    // Get the remote endpoint
+    auto remote_endpoint = socket.remote_endpoint();
+    
+    // Convert the IP address to a string
+    std::string ip_address = remote_endpoint.address().to_string();
+    
+    return ip_address;
 }

@@ -1,11 +1,14 @@
+#include "helpers/boost.hpp"
+#include "helpers/classes/Listener.hpp"
 #include "helpers/Helper.hpp"
+#include <thread>
+#include <filesystem>
 
 int main(int argc, char *argv[])
 {
     std::string programPath = argv[0];
     std::string programName = programNameResolver(programPath);
     int portNumber = -1;
-    int opt;
     bool portProvidedWithFlag = false;
 
     // Parse command line arguments manually since we're on Windows
@@ -62,7 +65,7 @@ int main(int argc, char *argv[])
         auto const port = static_cast<short unsigned int>(portNumber);
 
         // Create and verify Document Root
-        std::filesystem::path doc_root_path("./logs");
+        std::filesystem::path doc_root_path("./public");
 
         // Check if directory exists, create it if it doesn't
         if(!std::filesystem::exists(doc_root_path)) {
@@ -99,9 +102,8 @@ int main(int argc, char *argv[])
         auto work_guard = asio::make_work_guard(ioc);
 
         // Create and launch a listening port
-        std::make_shared<listener>(ioc, tcp::endpoint{address, port}, doc_root)->run();
-
-        LOG("[INFO] Server started and listening on port: " << port);
+        std::shared_ptr<listener> http_listener = std::make_shared<listener>(ioc, tcp::endpoint{address, port}, doc_root);
+        http_listener->run();
         
         // Start the worker threads
         std::vector<std::thread> threads;
@@ -110,7 +112,7 @@ int main(int argc, char *argv[])
         // Create a thread to handle user input without blocking server operation
         std::atomic<bool> stop_requested{false};
         std::thread input_thread([&stop_requested]() {
-            LOG("[INFO] Press Enter to stop the server...");
+            LOG("[INFO] Press Enter or CTRL + C to stop the server...");
             std::cin.get();
             stop_requested.store(true);
             LOG("[INFO] Shutdown requested by user.");
@@ -160,6 +162,7 @@ int main(int argc, char *argv[])
     {
         LOG("[ERROR] Error processing request: " << error.what());
     }
+
 
     return 0;
 }

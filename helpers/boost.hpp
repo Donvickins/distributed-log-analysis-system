@@ -25,6 +25,7 @@
 #endif
 
 // Standard includes
+#include <map>
 #include <memory>
 #include <algorithm>
 #include <cstdlib>
@@ -33,6 +34,7 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <utility>  // For std::pair
 
 // Boost includes
 #include <boost/asio.hpp>
@@ -42,10 +44,14 @@
 #include <boost/asio/connect.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/system/error_code.hpp>
+#include <boost/filesystem.hpp>
+#include <boost/asio/dispatch.hpp>
+#include <boost/asio/strand.hpp>
 
 // Namespace definitions
 namespace beast = boost::beast;
 namespace http = beast::http;
 namespace asio = boost::asio;
 using tcp = boost::asio::ip::tcp;
+namespace fs = boost::filesystem;  // Changed from 'using' to 'namespace'
 

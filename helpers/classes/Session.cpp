@@ -1,5 +1,6 @@
-#include "Session.h"
+#include "Session.hpp"
 #include "../Helper.hpp"
+#include "../http_handler.hpp"
 
 // Take ownership of the stream
 session::session(tcp::socket &&socket, std::shared_ptr<std::string const> const &doc_root)
@@ -23,8 +24,9 @@ void session::do_read()
     // otherwise the operation behavior is undefined.
     req_ = {};
 
-    // Set the timeout.
-    stream_.expires_after(std::chrono::seconds(30));
+    // Set the timeout dynamically based on the size of the data being transferred.
+    stream_.expires_after(std::chrono::seconds(300));
+
 
     // Read a request
     http::async_read(stream_, buffer_, req_, beast::bind_front_handler(&session::on_read, shared_from_this()));
@@ -38,11 +40,17 @@ void session::on_read(beast::error_code ec, std::size_t bytes_transferred)
     if (ec == http::error::end_of_stream)
         return do_close();
 
+    if(ec == beast::error::timeout)
+        return do_close();
+
     if (ec)
         return fail(ec, "[INFO] Read");
+    
+    //Get client endpoint from the socket
+    tcp::endpoint client_endpoint = stream_.socket().remote_endpoint();
 
     // Send the response
-    send_response(handle_request(*doc_root_, std::move(req_)));
+    send_response(handle_request(*doc_root_, std::move(req_), client_endpoint));
 }
 
 void session::send_response(http::message_generator &&msg)
@@ -62,9 +70,7 @@ void session::on_write(bool keep_alive, beast::error_code ec, std::size_t bytes_
     boost::ignore_unused(bytes_transferred);
 
     if (ec){
-        LOG("[ERROR] Write failed: " << ec.message() 
-            << " (error code: " << ec.value() 
-            << ", category: " << ec.category().name() << ")");
+        LOG("[ERROR] Write failed: " << ec.message());
         return fail(ec, "[ERROR] Write");
     }
     if (!keep_alive)
@@ -73,7 +79,7 @@ void session::on_write(bool keep_alive, beast::error_code ec, std::size_t bytes_
         // the response indicated the "Connection: close" semantic.
         return do_close();
     }
-
+    buffer_.consume(buffer_.size());
     // Read another request
     do_read();
 }

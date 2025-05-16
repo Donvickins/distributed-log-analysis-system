@@ -1,8 +1,11 @@
 #pragma once
 
-#include "../boost.hpp"
+// Include standard headers first
 #include <memory>
 #include <string>
+
+// Then include boost headers via our wrapper
+#include "../boost.hpp"
 
 class session : public std::enable_shared_from_this<session>
 {
