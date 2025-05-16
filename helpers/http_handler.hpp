@@ -24,7 +24,7 @@ struct ClientResponseData {
     std::string client_ip;
     std::string client_port;
     std::string analysis_type;
-    size_t invalid_json_objects;
+    size_t invalid_fields;
     json message_stats = json::object();
 };
 
@@ -50,10 +50,11 @@ http::message_generator handle_request(beast::string_view doc_root,
 
         std::string client_ip_address(client_endpoint.address().to_string());
         unsigned short client_port = client_endpoint.port();
+        size_t total_number_of_fields = 0, invalid_fields = 0;
         ClientResponseData response_data;
-        //size_t valid_json_objects = 0, invalid_json_objects = 0;
         auto content_type = req[http::field::content_type];
         response_data.analysis_type = "LOG LEVEL";
+        std::vector<json> json_objects;
 
         std::map<std::string, int, std::less<std::string>> message_frequencies;
 
@@ -68,23 +69,36 @@ http::message_generator handle_request(beast::string_view doc_root,
         if(!is_valid_content_type(content_type)) {
             return ResponseHandler::bad_request(req, "Invalid Content-Type header");
         }
-        
+
         if(content_type == "application/json") {
             const computed_data& parsedJson = process_json_request(req.body());
             
             if(parsedJson.error_message != "success") {
                 return ResponseHandler::bad_request(req, parsedJson.error_message);
             }else{
-                response_data.total_number_of_fields = parsedJson.total_number_of_fields;
-                response_data.invalid_json_objects = parsedJson.invalid_json_objects;
-                response_data.message_stats = parsedJson.message_stats;
+                total_number_of_fields += parsedJson.total_fields;
+                invalid_fields += parsedJson.invalid_fields;
+                json_objects.push_back(parsedJson.message_stats);
+            }
+        }
+
+        if(content_type == "text/plain"){
+            const computed_data& parsedText = parse_text_file(req.body());
+            
+            if(parsedText.error_message != "success") {
+                return ResponseHandler::bad_request(req, parsedText.error_message);
+            }else{
+                total_number_of_fields += parsedText.total_fields;
+                invalid_fields += parsedText.invalid_fields;
+                json_objects.push_back(parsedText.message_stats);
             }
         }
         
-        //response_data.total_number_of_fields = invalid_json_objects + valid_json_objects;
-        //response_data.invalid_json_objects = num_of_invalid_json_objects;
         response_data.client_ip = client_ip_address;
         response_data.client_port = std::to_string(client_port);
+        response_data.message_stats = merge_json_objects(json_objects);
+        response_data.total_number_of_fields = total_number_of_fields;
+        response_data.invalid_fields = invalid_fields;
 
         return ResponseHandler::response(req, response_data);
     }

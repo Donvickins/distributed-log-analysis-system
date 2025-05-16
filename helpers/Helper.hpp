@@ -19,4 +19,4 @@ std::string sanitize_ip(const std::string& ip_address);
 std::string get_timestamp_str();
 std::string save_file(const std::string& clientId, const std::string& ip, const std::string& content, const std::string& extension);
 bool is_valid_content_type(const std::string& content_type);
-bool is_valid_log_level(const std::string& level);
+std::string trim(const std::string& data);

@@ -55,7 +55,7 @@ public:
         response_object["client_port"] = data.client_port;
         response_object["analysis_type"] = data.analysis_type;
         response_object["message_stats"] = data.message_stats;
-        response_object["invalid_json_objects"] = std::to_string(data.invalid_json_objects);
+        response_object["invalid_json_objects"] = std::to_string(data.invalid_fields);
 
         http::response<http::string_body> res{http::status::ok, req.version()};
         res.set(http::field::server, BOOST_BEAST_VERSION_STRING);

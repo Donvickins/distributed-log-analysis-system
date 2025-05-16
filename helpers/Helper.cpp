@@ -145,9 +145,12 @@ bool is_valid_content_type(const std::string& content_type) {
         return std::find(valid_types.begin(), valid_types.end(), content_type) != valid_types.end();
 }
 
-bool is_valid_log_level(const std::string& level) {
-        static const std::vector<std::string> valid_levels = {
-            "INFO", "ERROR", "DEBUG", "WARNING", "CRITICAL"
-        };
-        return std::find(valid_levels.begin(), valid_levels.end(), level) != valid_levels.end();
-    }
+std::string trim(const std::string& data){
+    size_t first = data.find_first_not_of(" \t\n\r\f\v");
+    size_t last = data.find_last_not_of(" \t\n\r\f\v");
+
+    if(first == std::string::npos)
+        return "";
+
+    return data.substr(first, last - first + 1);
+}
