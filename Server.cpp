@@ -11,7 +11,6 @@ int main(int argc, char *argv[])
     int portNumber = -1;
     bool portProvidedWithFlag = false;
 
-    // Parse command line arguments manually since we're on Windows
     for (int i = 1; i < argc; i++)
     {
         std::string arg = argv[i];
@@ -26,7 +25,7 @@ int main(int argc, char *argv[])
                     return 1;
                 }
                 portProvidedWithFlag = true;
-                i++; // Skip the next argument since we used it
+                i++; 
             }
             catch (const std::exception &)
             {

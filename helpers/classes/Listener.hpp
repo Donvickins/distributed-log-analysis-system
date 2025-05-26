@@ -3,6 +3,7 @@
 #include "../boost.hpp"
 #include <memory>
 #include <string>
+#include <array>
 
 class listener : public std::enable_shared_from_this<listener>
 {
@@ -17,7 +18,7 @@ public:
     void run();
     std::string get_client_ip() const { return client_ip_; }  // Updated method
     void set_client_ip(const std::string& ip) { client_ip_ = ip; }  // New method
-    std::string get_socket_ip(tcp::socket &socket);  // Renamed original method
+    std::array<std::string, 2> get_socket_ip_and_port(tcp::socket &socket);  // Renamed original method
 
 private:
     void do_accept();

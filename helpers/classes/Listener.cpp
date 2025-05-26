@@ -36,10 +36,12 @@ listener::listener(
         fail(ec, "bind");
         return;
     }
-
+    LOG("[INFO] Waiting for connection...");
     // Start listening for connections
     acceptor_.listen(
         asio::socket_base::max_listen_connections, ec);
+
+    
     if (ec)
     {
         fail(ec, "listen");
@@ -73,10 +75,14 @@ void listener::on_accept(beast::error_code ec, tcp::socket socket)
     else
     {
         // Store the client IP address
-        set_client_ip(get_socket_ip(socket));
+        set_client_ip(get_socket_ip_and_port(socket)[0]);
+        std::cout << "\n[INFO] Client connected. IP: " 
+                  << get_socket_ip_and_port(socket)[0] << " , PORT: "
+                  << get_socket_ip_and_port(socket)[1] << std::endl;
         
         // Create the session and run it
         std::make_shared<session>(std::move(socket), doc_root_)->run();
+
     }
 
     // Accept another connection
@@ -84,13 +90,14 @@ void listener::on_accept(beast::error_code ec, tcp::socket socket)
 }
 
 
-std::string listener::get_socket_ip(tcp::socket &socket)
+std::array<std::string, 2> listener::get_socket_ip_and_port(tcp::socket &socket)
 {
     // Get the remote endpoint
     auto remote_endpoint = socket.remote_endpoint();
     
     // Convert the IP address to a string
     std::string ip_address = remote_endpoint.address().to_string();
+    std::string port = std::to_string(remote_endpoint.port());
     
-    return ip_address;
+    return {ip_address, port};
 }

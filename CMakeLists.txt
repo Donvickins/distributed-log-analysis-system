@@ -60,22 +60,23 @@ message(STATUS "Boost Include Directory: ${Boost_INCLUDE_DIR}")
 
 # Find nlohmann_json (the package name in vcpkg is nlohmann-json, but CMake uses nlohmann_json)
 find_package(nlohmann_json CONFIG REQUIRED)
-message(STATUS "nlohmann_json Found: ${nlohmann_json_FOUND}")
-message(STATUS "nlohmann_json_INCLUDE_DIRS: ${nlohmann_json_INCLUDE_DIRS}")
-message(STATUS "nlohmann_json include dir: $<TARGET_PROPERTY:nlohmann_json::nlohmann_json,INTERFACE_INCLUDE_DIRECTORIES>")
 
 # Set nlohmann_json include directory explicitly
 set(JSON_INCLUDE_DIR "${VCPKG_INSTALLED_DIR}/include")
-# Find SQLite3 from vcpkg
-find_package(unofficial-sqlite3 CONFIG REQUIRED)
+
+find_package(pugixml CONFIG REQUIRED)
 
 # Set helper directory
 set(HELPER_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/helpers)
 
 # Add the executable
 add_executable(Server Server.cpp)
+add_executable(Client Client.cpp)
+
 add_subdirectory("${HELPER_INCLUDE_DIR}")
+
 target_include_directories(Server PRIVATE "${HELPER_INCLUDE_DIR}")
+target_include_directories(Client PRIVATE "${HELPER_INCLUDE_DIR}")
 
 # Setup Server target dependencies
 if(Boost_FOUND)
@@ -87,7 +88,17 @@ if(Boost_FOUND)
     Boost::system 
     Boost::filesystem
     nlohmann_json::nlohmann_json
-    unofficial::sqlite3::sqlite3
+    pugixml::static pugixml::pugixml
+)
+
+ target_include_directories(Client PRIVATE "${Boost_INCLUDE_DIRS}")
+    target_link_libraries(Client 
+    PRIVATE 
+    helper 
+    Boost::system 
+    Boost::filesystem
+    nlohmann_json::nlohmann_json
+    pugixml::static pugixml::pugixml
 )
 else()
     message(FATAL_ERROR "Boost with system component not found. Beast and Asio are header-only and will be included automatically.")

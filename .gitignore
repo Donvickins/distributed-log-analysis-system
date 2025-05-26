@@ -2,3 +2,5 @@
 build/
 Server
 Client
+logs/
+storage/

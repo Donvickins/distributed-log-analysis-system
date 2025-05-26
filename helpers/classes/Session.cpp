@@ -27,12 +27,25 @@ void session::do_read()
     // Set the timeout dynamically based on the size of the data being transferred.
     stream_.expires_after(std::chrono::seconds(300));
 
+    // Use a parser to set the body limit
+    auto parser = std::make_shared<http::request_parser<http::dynamic_body>>();
+    parser->body_limit(body_limit_); // Set the body limit to 1GB
 
     // Read a request
-    http::async_read(stream_, buffer_, req_, beast::bind_front_handler(&session::on_read, shared_from_this()));
+    http::async_read(
+        stream_,
+        buffer_,
+        *parser,
+        beast::bind_front_handler(
+            [self = shared_from_this(), parser](beast::error_code ec, std::size_t bytes_transferred) {
+                self->on_read_with_parser(ec, bytes_transferred, parser);
+            }
+        )
+    );
 }
 
-void session::on_read(beast::error_code ec, std::size_t bytes_transferred)
+// New handler to accept parser
+void session::on_read_with_parser(beast::error_code ec, std::size_t bytes_transferred, std::shared_ptr<http::request_parser<http::dynamic_body>> parser)
 {
     boost::ignore_unused(bytes_transferred);
 
@@ -45,10 +58,11 @@ void session::on_read(beast::error_code ec, std::size_t bytes_transferred)
 
     if (ec)
         return fail(ec, "[INFO] Read");
-    
+
+    req_ = parser->get(); // Move the parsed request into req_
+
     //Get client endpoint from the socket
     tcp::endpoint client_endpoint = stream_.socket().remote_endpoint();
-
     // Send the response
     send_response(handle_request(*doc_root_, std::move(req_), client_endpoint));
 }

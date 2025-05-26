@@ -10,9 +10,11 @@
 #include <boost/beast/version.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/asio/buffer.hpp>
 
 #include "Helper.hpp"
 #include "classes/ResponseHandler.hpp"
+#include <pugixml.hpp>
 
 // Namespace declarations
 namespace beast = boost::beast;
@@ -29,7 +31,7 @@ struct computed_data {
     std::string error_message;
 };
 
-computed_data process_json_request(std::string& body)
+computed_data process_json_request(const std::string& body)
 {
     computed_data response_data;
     try
@@ -108,6 +110,48 @@ computed_data parse_text_file(const std::string& body)
 
     }}catch(std::exception& e){
         std::cerr << "[ERROR] Processing Text: " << e.what() << '\n';
+        response_data.total_fields = 0;
+        response_data.invalid_fields = 0;
+        response_data.message_stats = json::object();
+        response_data.error_message = e.what();
+        return response_data;
+    }
+
+    response_data.total_fields = valid_objects + invalid_objects;
+    response_data.invalid_fields = invalid_objects;
+    response_data.message_stats = json(parsedData);
+    response_data.error_message = "success";
+
+    return response_data;
+}
+
+computed_data parse_xml_file(const std::string& body)
+{
+    computed_data response_data;
+
+    std::unordered_map<std::string, std::unordered_map<std::string, int>> parsedData;
+    size_t valid_objects = 0, invalid_objects = 0;
+
+    try {
+        pugi::xml_document doc;
+        doc.load_string(body.c_str());
+
+        pugi::xml_node logs = doc.child("logs");
+
+        for(const auto& log: logs){
+            const std::string currentLog = trim(log.child("log_level").text().as_string());
+            const std::string currentLogMsg = trim(log.child("message").text().as_string());
+            if(!is_log_level(currentLog) || currentLogMsg.empty() ){
+                ++invalid_objects;
+                continue;
+            }
+            
+            parsedData[currentLog][currentLogMsg]++;
+            ++valid_objects;
+        }
+    
+    } catch (const std::exception& e) {
+        std::cerr << "[ERROR] Processing XML: " << e.what() << '\n';
         response_data.total_fields = 0;
         response_data.invalid_fields = 0;
         response_data.message_stats = json::object();
