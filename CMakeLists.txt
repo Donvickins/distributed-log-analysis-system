@@ -54,15 +54,9 @@ else()
 endif()
 
 # Find required packages
-find_package(Boost REQUIRED COMPONENTS system filesystem)
+find_package(Boost REQUIRED COMPONENTS system filesystem json)
 message(STATUS "Boost Found: ${Boost_FOUND}")
 message(STATUS "Boost Include Directory: ${Boost_INCLUDE_DIR}")
-
-# Find nlohmann_json (the package name in vcpkg is nlohmann-json, but CMake uses nlohmann_json)
-find_package(nlohmann_json CONFIG REQUIRED)
-
-# Set nlohmann_json include directory explicitly
-set(JSON_INCLUDE_DIR "${VCPKG_INSTALLED_DIR}/include")
 
 find_package(pugixml CONFIG REQUIRED)
 
@@ -87,7 +81,7 @@ if(Boost_FOUND)
     helper 
     Boost::system 
     Boost::filesystem
-    nlohmann_json::nlohmann_json
+    Boost::json
     pugixml::static pugixml::pugixml
 )
 
@@ -97,14 +91,9 @@ if(Boost_FOUND)
     helper 
     Boost::system 
     Boost::filesystem
-    nlohmann_json::nlohmann_json
+    Boost::json
     pugixml::static pugixml::pugixml
 )
 else()
     message(FATAL_ERROR "Boost with system component not found. Beast and Asio are header-only and will be included automatically.")
-endif()
-if(nlohmann_json_FOUND)
-    # nlohmann_json is already included in the main target_link_libraries
-else()
-    message(FATAL_ERROR "nlohmann_json not found. Please install it using vcpkg.")
 endif()

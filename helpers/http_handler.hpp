@@ -25,7 +25,7 @@ struct ClientResponseData {
     std::string client_port;
     std::string analysis_type;
     size_t invalid_fields;
-    json message_stats = json::object();
+    boost::json::object message_stats;
 };
 
 
@@ -53,7 +53,7 @@ http::message_generator handle_request(beast::string_view doc_root,
         size_t total_number_of_fields = 0, invalid_fields = 0;
         ClientResponseData response_data;
         response_data.analysis_type = "LOG LEVEL";
-        std::vector<json> json_objects;
+        std::vector<boost::json::value> json_objects;
         std::string client_id(req["Client-Id"]);
         std::map<std::string, int, std::less<std::string>> message_frequencies;
 

@@ -4,3 +4,4 @@ Server
 Client
 logs/
 storage/
+vcpkg_installed/

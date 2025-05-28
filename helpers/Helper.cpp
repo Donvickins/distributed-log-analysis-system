@@ -210,7 +210,7 @@ bool has_ext(const std::string& filename, const std::string& ext) {
     return false;
 }
 
-void print_response(const json& j){
+void print_response(const boost::json::value& j){
     int log_level_len = 25, 
             message_len = 35, 
             times_occurred_len = 15;
@@ -223,11 +223,11 @@ void print_response(const json& j){
     std::cout << std::setfill('-') << std::setw(log_level_len + message_len + times_occurred_len) << "" << std::endl;
     std::cout << std::setfill(' ');
 
-    for(const auto& [log_level, content] : j["message_stats"].items()){
+    for(const auto& [log_level, content] : j.as_object()){
         std::cout << std::left << std::setw(log_level_len) << log_level;
         bool is_first = true;
 
-        for(const auto& [key,value]: content.items()){
+        for(const auto& [key, value]: content.as_object()){
             if(is_first){
                 std::cout << std::setw(message_len) << key
                     << std::setw(times_occurred_len) << value << std::endl;

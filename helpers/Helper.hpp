@@ -6,9 +6,8 @@
 #include <iomanip>
 #include <fstream>
 #include <string>
-#include <nlohmann/json.hpp>
 
-using json = nlohmann::json;
+#include <boost/json.hpp>
 
 // Define LOG macro
 #define LOG(...) std::cout << __VA_ARGS__ << std::endl
@@ -25,4 +24,4 @@ bool is_log_level(const std::string& log_level);
 std::string get_file(const fs::path& doc_root, const std::string& file_name, const std::string& file_ext);
 bool has_ext(const std::string& filename, const std::string& ext);
 std::map<std::string, std::string> save_file(const std::string& content, const std::string& client_id, const std::string& ip, const std::string& ext);
-void print_response(const json& j);
+void print_response(const boost::json::value& j);

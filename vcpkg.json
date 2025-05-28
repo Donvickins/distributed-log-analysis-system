@@ -2,8 +2,8 @@
     "name": "distributed-log-analysis-system",
     "version-string": "1.0.0",
     "dependencies": [
-        "nlohmann-json",
         "boost",
+        "boost-json",
         "pugixml"
     ]
 }

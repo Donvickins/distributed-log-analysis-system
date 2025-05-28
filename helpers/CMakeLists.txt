@@ -15,5 +15,4 @@ target_include_directories(helper
 target_link_libraries(helper 
     PUBLIC 
     helper_classes
-    nlohmann_json::nlohmann_json
 )

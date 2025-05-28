@@ -4,6 +4,7 @@
 #include <functional>
 #include <thread>
 #include <chrono>
+#include "classes/simdjson.h"
 
 int main(int argc, char *argv[])
 {
@@ -145,12 +146,16 @@ int main(int argc, char *argv[])
             fs::path p(path);
             return p.filename().string();
         };
+        // simdjson::dom::parser parser;
+        // simdjson::dom::element json_data = parser.load(json_path);
 
-        std::string json_data = read_file(json_path);
+        simdjson::ondemand::parser parser;
+        auto json_file = simdjson::padded_string::load(json_path);
+        simdjson::ondemand::document json_data = parser.iterate(json_file);
         std::string xml_data = read_file(xml_path);
         std::string txt_data = read_file(txt_path);
 
-        if (json_data.empty() || xml_data.empty() || txt_data.empty()) {
+        if (json_data.is_null() || xml_data.empty() || txt_data.empty()) {
             std::cerr << "[ERROR] One or more files are missing or empty." << std::endl;
             return 1;
         }
@@ -214,15 +219,15 @@ int main(int argc, char *argv[])
             return 1;
         }
 
-        json data = nlohmann::json::parse(res.body());
+        boost::json::value data = boost::json::parse(res.body());
 
         LOG("ANALYSIS: LOG LEVEL");
         LOG("SERVER IP: " << server_ip);
         LOG("SERVER PORT: " << server_port);
-        LOG("INVALID DATA: " << std::stoi(data["invalid_data"].get<std::string>()));
-        LOG("TOTAL ENTRIES: " << std::stoi(data["total_entries"].get<std::string>()) << "\n");
+        LOG("INVALID DATA: " << static_cast<int>(data.at("invalid_data").as_int64()));
+        LOG("TOTAL ENTRIES: " << static_cast<int>(data.at("total_entries").as_int64()) << "\n");
         
-        print_response(data);
+        print_response(data.at("message_stats"));
 
         if (res.need_eof() || res.find(http::field::connection) == res.end() ||
             res[http::field::connection] != "keep-alive") {

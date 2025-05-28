@@ -4,6 +4,7 @@ add_library(helper_classes
     Session.cpp
     Listener.cpp
     ResponseHandler.hpp
+    simdjson.cpp
 )
 
 # Make sure the compiler can find include files for the library
@@ -27,12 +28,13 @@ target_sources(helper_classes
     Session.hpp
     Listener.hpp
     ResponseHandler.hpp
+    simdjson.h
 )
 
 # Link with required dependencies
 target_link_libraries(helper_classes
     PUBLIC
-    nlohmann_json::nlohmann_json
     Boost::filesystem
     Boost::system
+    Boost::json
 )
