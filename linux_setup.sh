@@ -2,13 +2,14 @@
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 # Check for and install required packages: git, cmake, g++, curl, unzip
-REQUIRED_PKGS=(git cmake g++ curl unzip)
+REQUIRED_PKGS=(git cmake ninja clang curl unzip)
 MISSING_PKGS=()
 for pkg in "${REQUIRED_PKGS[@]}"; do
     if ! command -v $pkg &> /dev/null; then
         MISSING_PKGS+=("$pkg")
     fi
 done
+
 if [ ${#MISSING_PKGS[@]} -ne 0 ]; then
     echo "Installing missing packages: ${MISSING_PKGS[*]}"
     sudo apt update && sudo apt install -y "${MISSING_PKGS[@]}"

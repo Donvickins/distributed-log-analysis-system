@@ -2,7 +2,10 @@
     "name": "distributed-log-analysis-system",
     "version-string": "1.0.0",
     "dependencies": [
-        "boost",
+        "boost-asio",
+        "boost-beast",
+        "boost-system",
+        "boost-filesystem",
         "boost-json",
         "pugixml"
     ]

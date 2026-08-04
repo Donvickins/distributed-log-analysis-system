@@ -1,40 +1,16 @@
-# Create a library called "helper_classes" which includes the source files
-add_library(helper_classes
-    STATIC
-    Session.cpp
-    Listener.cpp
-    ResponseHandler.hpp
-    simdjson.cpp
-)
+add_library(listener STATIC listener.cpp)
+add_library(session STATIC session.cpp)
+add_library(response_handler INTERFACE)
+add_library(simdjson STATIC simdjson.cpp)
+add_library(class_common INTERFACE)
 
-# Make sure the compiler can find include files for the library
-target_include_directories(helper_classes
-    PUBLIC 
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/..
-    ${VCPKG_INSTALLED_DIR}/include  # Add the vcpkg include directory
-    ${Boost_INCLUDE_DIRS}  # Add Boost include directories
-)
+target_include_directories(listener PUBLIC class_common)
+target_include_directories(session PUBLIC class_common)
+target_include_directories(response_handler INTERFACE class_common)
+target_include_directories(simdjson PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(class_common INTERFACE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/..)
 
-# Set additional properties for the target
-set_target_properties(helper_classes PROPERTIES
-    CXX_STANDARD 17
-    CXX_STANDARD_REQUIRED ON
-)
-
-# Add header files (they don't need to be in add_library, but good for IDE integration)
-target_sources(helper_classes
-    PRIVATE
-    Session.hpp
-    Listener.hpp
-    ResponseHandler.hpp
-    simdjson.h
-)
-
-# Link with required dependencies
-target_link_libraries(helper_classes
-    PUBLIC
-    Boost::filesystem
-    Boost::system
-    Boost::json
-)
+target_link_libraries(class_common INTERFACE Boost::filesystem Boost::system Boost::json helper)
+target_link_libraries(listener PUBLIC Boost::filesystem Boost::system Boost::json helper session)
+target_link_libraries(session PUBLIC class_common )
+target_link_libraries(response_handler INTERFACE Boost::system Boost::json)
