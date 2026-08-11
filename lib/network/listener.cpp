@@ -4,8 +4,6 @@
 #include <print>
 
 #include "session.hpp"
-#include "utils.hpp"
-
 
 //------------------------------------------------------------------------------
 
@@ -17,28 +15,28 @@ listener::listener(asio::io_context& ioc,
   beast::error_code ec;
 
   // Open the acceptor
-  acceptor_.open(endpoint.protocol(), ec);
+  boost::ignore_unused(acceptor_.open(endpoint.protocol(), ec));
   if (ec) {
     fail(ec, "open");
     return;
   }
 
   // Allow address reuse
-  acceptor_.set_option(asio::socket_base::reuse_address(true), ec);
+  boost::ignore_unused(acceptor_.set_option(asio::socket_base::reuse_address(true), ec));
   if (ec) {
     fail(ec, "set_option");
     return;
   }
 
   // Bind to the server address
-  acceptor_.bind(endpoint, ec);
+  boost::ignore_unused(acceptor_.bind(endpoint, ec));
   if (ec) {
     fail(ec, "bind");
     return;
   }
   std::println("[INFO] Waiting for connection...");
   // Start listening for connections
-  acceptor_.listen(asio::socket_base::max_listen_connections, ec);
+  boost::ignore_unused(acceptor_.listen(asio::socket_base::max_listen_connections, ec));
 
   if (ec) {
     fail(ec, "listen");
@@ -62,7 +60,7 @@ void listener::on_accept(beast::error_code ec, tcp::socket socket) {
   } else {
     // Store the client IP address
     set_client_ip(get_socket_ip_and_port(socket)[0]);
-    std::print("\n[INFO] Client connected. IP: {}, PORT: {}",
+    std::println("\n[INFO] Client connected. IP: {}, PORT: {}",
         get_socket_ip_and_port(socket)[0],
         get_socket_ip_and_port(socket)[1]);
 
@@ -83,4 +81,8 @@ std::array<std::string, 2> listener::get_socket_ip_and_port(tcp::socket& socket)
   std::string port = std::to_string(remote_endpoint.port());
 
   return {ip_address, port};
+}
+
+void listener::fail(beast::error_code ec, char const* what) {
+  std::println("{}: {}", what, ec.message());
 }

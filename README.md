@@ -1,74 +1,125 @@
 # Distributed Log Analysis System
 
-A client/server log analysis system built on Boost.Beast that ingests JSON, XML, and text log files over HTTP and returns aggregated log-level statistics.
+A client/server log aggregation tool built on Boost.Asio and Boost.Beast. A small HTTP server parses JSON, XML, and pipe-delimited text logs, merges them into a per-log-level message analysis, and returns it as JSON.
+
+## Highlights
+
+- **Concurrent server** — an Asio `io_context` worker pool sized to the host's hardware concurrency
+- **Fast JSON** — log parsing uses [simdjson](https://github.com/simdjson/simdjson), with AVX-accelerated parsing on supported CPUs
+- **Three formats, one request** — a single multipart POST carries `log_file.json`, `log_file.xml`, and `log_file.txt`
+- **Aggregated analysis** — every upload is merged into one `message_stats` map: `log_level → message → count` across all files
+- **Per-client persistence** — uploads are stored as timestamped files under `storage/Client#<id>/`, clients tracked via a `Client-Id` header
+- **Static hosting** — also serves the `./public` directory over HTTP
+- **Cross-platform** — vcpkg manifest dependencies with `linux` (clang) and `windows` (MSVC) CMake presets
 
 ## Architecture
 
-- **server** — A Boost.Asio/Beast HTTP server that binds to `127.0.0.1`, serves the `./public` directory, accepts multipart form-data uploads (or raw bodies), parses each supported content type, merges the results into `message_stats`, and returns a JSON analysis. Uses a pool of Asio worker threads sized to the host's hardware concurrency.
-- **client** — A Boost.Beast HTTP client that reads `./logs/log_file.json`, `./logs/log_file.xml`, and `./logs/log_file.txt`, sends them in a single multipart request, and prints the analysis summary returned by the server.
+```text
+./build/client ──(multipart POST: log_file.json/.xml/.txt)──▶ ./build/server
+      ▲                                                       (Asio worker pool ─ parse ─ merge)
+      └────────────────(JSON: log-level → message → count)───────────────────────┘
+```
 
-## Features
-
-- Ingests three log formats: `application/json`, `application/xml`, and `text/plain`
-- Accepts both multipart/form-data uploads and single-content-type request bodies
-- Aggregates per-log-level message frequency counts across all uploaded files
-- Tracks clients via a `Client-Id` header
-- Concurrent request handling via Asio worker threads
-- Returns a structured JSON response
+- **server** — A Boost.Asio/Beast HTTP server that binds `0.0.0.0`, serves `./public`, accepts multipart form-data uploads (or raw single-content-type bodies), parses each supported format, and merges the results into `message_stats`.
+- **client** — A Boost.Beast HTTP client that reads `./logs/log_file.json`, `./logs/log_file.xml`, and `./logs/log_file.txt`, sends them in a single multipart request, and prints the analysis summary.
 
 ## Requirements
 
-- Linux
 - CMake >= 3.24
-- A C++23 compiler (clang recommended)
+- A C++23 compiler
 - Ninja
 - git, curl, unzip
-- Dependencies are pulled automatically via vcpkg:
-  - boost-asio, boost-beast, boost-system, boost-filesystem, boost-json
+- [vcpkg](https://github.com/microsoft/vcpkg) — dependencies are pulled automatically from the manifest (`vcpkg.json`):
+  - boost-asio, boost-beast, boost-system, boost-json
   - pugixml
-  - simdjson (vendored in `helpers/classes/`)
+  - cli11
+  - simdjson
+
+Per-OS prerequisites:
+
+- **Linux (Debian/Ubuntu)**
+
+  ```bash
+  sudo apt install git cmake ninja-build clang curl unzip
+  ```
+
+- **macOS**
+
+  ```bash
+  xcode-select --install       # provides clang/clang++
+  brew install cmake ninja curl
+  ```
+
+- **Windows**
+
+  Install [Visual Studio 2022](https://visualstudio.microsoft.com/) with the
+  "Desktop development with C++" workload, plus CMake and Ninja. Configure and
+  build from a Developer PowerShell (started from the VS menu) so the MSVC
+  toolchain is on the PATH.
 
 ## Install & Build
 
-### One-shot setup
+### 1. Install vcpkg
 
 ```bash
-./linux_setup.sh
+git clone https://github.com/microsoft/vcpkg.git ~/vcpkg
 ```
 
-This installs any missing system packages, clones and bootstraps vcpkg into `~/vcpkg`, installs the manifest dependencies, and configures the `build/` directory.
-
-### Manual build
+Bootstrap vcpkg. On Windows use `bootstrap-vcpkg.bat` instead of `bootstrap-vcpkg.sh`:
 
 ```bash
-cmake --preset=vcpkg
+~/vcpkg/bootstrap-vcpkg.sh
+```
+
+Tell CMake where the toolchain lives (add to your shell profile):
+
+```bash
+export VCPKG_ROOT="$HOME/vcpkg"
+```
+
+### 2. Configure and build
+
+Linux/macOS:
+
+```bash
+cmake --preset=linux
 cmake --build build
 ```
 
+Windows (Developer PowerShell):
+
+```powershell
+cmake --preset=windows
+cmake --build build
+```
+
+The first configure step downloads and builds the manifest dependencies into `build/vcpkg_installed/`.
+
 Artifacts are produced in `build/`:
 
-- `build/server`
-- `build/client`
+- `build/server` (Windows: `build/server.exe`)
+- `build/client` (Windows: `build/client.exe`)
 
 ## Usage
 
 ### Server
 
 ```bash
-./build/server                 # default port 9000
-./build/server -p 8080         # or specify a port (1024-65535)
+./build/server                  # default port 9000
+./build/server -p 8080          # or specify a port (1024-65535)
 ```
 
-The server creates `./public` if it does not exist. Press Enter or Ctrl+C to stop it.
+The server creates `./public` if it does not exist. Type `/quit` and press Enter, or press Ctrl+C, to stop it. On Windows, Ctrl+C and Ctrl+Break are handled through the native console control handler; `kill`/SIGTERM has no equivalent there.
 
 ### Client
 
 ```bash
-./build/client -id 42                 # connects to default port 9000
-./build/client -id 42 -p 8080         # or specify a port
+./build/client -id 42           # default client port 7654
+./build/client -id 42 -p 9000   # or point at the server
+./build/client --client-id 42   # long form
 ```
 
-`-id` is required and must be a positive integer. The port defaults to 9000. The client reads the three log files from `./logs/`.
+`-id`/`--client-id` sets the `Client-Id` header. It defaults to the client port 7654 — the server listens on 9000 by default, so pass `-p 9000` when connecting to a default-configured server. The client reads the three log files from `./logs/`.
 
 ## Input formats
 

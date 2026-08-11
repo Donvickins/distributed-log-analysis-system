@@ -2,7 +2,7 @@
   "version": 2,
   "configurePresets": [
     {
-      "name": "vcpkg",
+      "name": "linux",
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build",
       "cacheVariables": {
@@ -11,6 +11,14 @@
       "environment": {
         "CC": "clang",
         "CXX": "clang++"
+      }
+    },
+    {
+      "name": "windows",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
       }
     }
   ]

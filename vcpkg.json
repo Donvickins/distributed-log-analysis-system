@@ -6,7 +6,6 @@
     "boost-asio",
     "boost-beast",
     "boost-system",
-    "boost-filesystem",
     "boost-json",
     "pugixml",
     "cli11",

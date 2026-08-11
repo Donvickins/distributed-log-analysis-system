@@ -1,11 +1,25 @@
-#include "file_handler.hpp"
+#include "handler.hpp"
 
 #include <map>
 #include <pugixml.hpp>
 #include <unordered_map>
 
 #include "simdjson.h"
-#include "utils.hpp"
+
+std::string trim(const std::string& data) {
+  size_t first = data.find_first_not_of(" \t\n\r\f\v");
+  size_t last = data.find_last_not_of(" \t\n\r\f\v");
+
+  if (first == std::string::npos) return "";
+
+  return data.substr(first, last - first + 1);
+}
+
+bool is_log_level(const std::string& log_level) {
+  const std::vector<std::string> valid_log_level = {"INFO", "DEBUG", "WARN", "ERROR", "CRITICAL"};
+  return std::find(valid_log_level.begin(), valid_log_level.end(), log_level) !=
+         valid_log_level.end();
+}
 
 computed_data process_json_request(const std::string& body) {
   computed_data response_data;

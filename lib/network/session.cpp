@@ -2,11 +2,9 @@
 
 #include <boost/asio/dispatch.hpp>
 #include <boost/core/ignore_unused.hpp>
-#include <chrono>
 #include <print>
 
-#include "http_handler.hpp"
-#include "utils.hpp"
+#include "../http/handler.hpp"
 
 // Take ownership of the stream
 session::session(tcp::socket&& socket, std::shared_ptr<std::string const> const& doc_root)
@@ -99,3 +97,7 @@ void session::do_close() {
   boost::ignore_unused(shutdown);
   // At this point the connection is closed gracefully
 }
+
+void session::fail(beast::error_code ec, char const* what) {
+  std::println("{}: {}", what, ec.message());
+};

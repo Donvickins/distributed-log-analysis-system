@@ -6,6 +6,9 @@
 #include <boost/beast/version.hpp>
 #include <boost/json.hpp>
 #include <cstddef>
+#include <filesystem>
+#include <fstream>
+#include <iomanip>
 #include <map>
 #include <print>
 #include <sstream>
@@ -14,13 +17,14 @@
 #include <utility>
 #include <vector>
 
-#include "file_handler.hpp"
+#include "../file/handler.hpp"
+#include "../utils/utils.hpp"
 #include "response_handler.hpp"
-#include "utils.hpp"
 
 namespace beast = boost::beast;
 namespace http = beast::http;
 using tcp = boost::asio::ip::tcp;
+namespace fs = std::filesystem;
 
 struct ClientResponseData {
   size_t total_number_of_fields;
@@ -30,6 +34,88 @@ struct ClientResponseData {
   size_t invalid_fields;
   boost::json::object message_stats;
 };
+
+inline std::string sanitize_ip(std::string ip) {
+  std::replace(ip.begin(), ip.end(), '.', '_');
+  return ip;
+}
+
+inline bool is_valid_content_type(const std::string& content_type) {
+  static constexpr std::array valid_types{"application/json", "application/xml", "text/plain"};
+  return std::find(valid_types.begin(), valid_types.end(), content_type) != valid_types.end();
+}
+
+inline std::string get_timestamp_str() {
+  auto now = std::chrono::system_clock::now();
+  auto itt = std::chrono::system_clock::to_time_t(now);
+  std::stringstream ss;
+  ss << std::put_time(std::localtime(&itt),
+      "%Y-%m-%d_%H:%M:%S");  // Local time with normal date format
+  return ss.str();
+}
+
+inline std::map<std::string, std::string> save_file(const std::string& content,
+    const std::string& client_id,
+    const std::string& ip,
+    const std::string& ext) {
+  std::string directory = "./storage/Client#" + client_id + "/";
+  fs::path dir = directory;
+  std::string construct_file_name = get_timestamp_str() + "_" + sanitize_ip(ip) + ext;
+  fs::path file_name = construct_file_name;
+  fs::path file_path = dir / file_name;
+
+  if (!fs::exists(dir)) {
+    if (!fs::create_directories(dir)) throw std::runtime_error("Failed to create directory");
+  }
+
+  std::fstream file;
+  file.open(file_path, std::ios::out);
+
+  if (!file.is_open()) {
+    throw std::runtime_error("[ERROR] Failed to open file: " + file_path.string());
+  }
+
+  file << content;
+  file.close();
+  return std::map<std::string, std::string>{{"status", "success"},
+      {"file_name", file_name.string()}};
+}
+
+inline std::string_view mime_type(std::string_view path) {
+  using beast::iequals;
+  auto const pos = path.rfind('.');
+  if (pos == std::string_view::npos) return "application/text";
+  auto extension = path.substr(pos);
+
+  static constexpr std::array mime_map = {
+      std::pair{".htm", "text/html"},
+      std::pair{".html", "text/html"},
+      std::pair{".php", "text/html"},
+      std::pair{".css", "text/css"},
+      std::pair{".txt", "text/plain"},
+      std::pair{".js", "application/javascript"},
+      std::pair{".json", "application/json"},
+      std::pair{".xml", "application/xml"},
+      std::pair{".swf", "application/x-shockwave-flash"},
+      std::pair{".flv", "video/x-flv"},
+      std::pair{".png", "image/png"},
+      std::pair{".jpe", "image/jpeg"},
+      std::pair{".jpeg", "image/jpeg"},
+      std::pair{".jpg", "image/jpeg"},
+      std::pair{".gif", "image/gif"},
+      std::pair{".bmp", "image/bmp"},
+      std::pair{".ico", "image/vnd.microsoft.icon"},
+      std::pair{".tiff", "image/tiff"},
+      std::pair{".tif", "image/tiff"},
+      std::pair{".svg", "image/svg+xml"},
+      std::pair{".svgz", "image/svg+xml"},
+  };
+
+  for (auto const& [ext, mime] : mime_map) {
+    if (iequals(ext, extension)) return mime;
+  }
+  return "application/text";
+}
 
 template <class Body, class Allocator>
 http::message_generator handle_request(beast::string_view doc_root,

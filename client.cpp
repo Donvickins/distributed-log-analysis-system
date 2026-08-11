@@ -7,7 +7,8 @@
 #include <fstream>
 #include <print>
 
-#include "lib/utils.hpp"
+#include "lib/cli/parse.hpp"
+#include "lib/utils/utils.hpp"
 #include "simdjson.h"
 
 namespace beast = boost::beast;
@@ -60,7 +61,7 @@ int main(int argc, char* argv[]) {
     };
 
     auto get_file_name = [](const std::string& path) -> std::string {
-      fs::path p(path);
+      std::filesystem::path p(path);
       return p.filename().string();
     };
     // simdjson::dom::parser parser;
