@@ -52,32 +52,55 @@ Per-OS prerequisites:
 
 - **Windows**
 
-  Install [Visual Studio 2022](https://visualstudio.microsoft.com/) with the
-  "Desktop development with C++" workload, plus CMake and Ninja. Configure and
-  build from a Developer PowerShell (started from the VS menu) so the MSVC
-  toolchain is on the PATH.
+  1. Install the [Visual Studio 2022 Build Tools](https://visualstudio.microsoft.com/downloads/#build-tools-for-visual-studio-2022)
+     (no full IDE needed). In the installer pick the **"Desktop development
+     with C++"** workload — it provides the MSVC compiler and CMake.
+  2. Install [Ninja](https://github.com/ninja-build/ninja/releases) (grab the
+     `ninja-win.zip` release), unzip it, and **add the folder containing
+     `ninja.exe` to your PATH** — it is not added automatically.
+  3. Create a `VCPKG_ROOT` environment variable pointing at your vcpkg clone
+     (step 1 of Install & Build below) — the CMake presets read
+     `$env{VCPKG_ROOT}` and configuration will fail without it.
+
+  Configure and build from a **Developer PowerShell for VS 2022** (Start-menu
+  shortcut installed with the Build Tools) so the MSVC toolchain is on the PATH.
 
 ## Install & Build
 
 ### 1. Install vcpkg
 
+Linux/macOS:
+
 ```bash
 git clone https://github.com/microsoft/vcpkg.git ~/vcpkg
-```
-
-Bootstrap vcpkg. On Windows use `bootstrap-vcpkg.bat` instead of `bootstrap-vcpkg.sh`:
-
-```bash
 ~/vcpkg/bootstrap-vcpkg.sh
 ```
 
-Tell CMake where the toolchain lives (add to your shell profile):
+Windows (PowerShell):
+
+```powershell
+git clone https://github.com/microsoft/vcpkg.git "$env:USERPROFILE\vcpkg"
+& "$env:USERPROFILE\vcpkg\bootstrap-vcpkg.bat"
+```
+
+### 2. Set the VCPKG_ROOT environment variable
+
+Linux/macOS — add to your shell profile, then reload it:
 
 ```bash
 export VCPKG_ROOT="$HOME/vcpkg"
 ```
 
-### 2. Configure and build
+Windows — create a user environment variable, then restart the shell (and any
+open terminals) so new processes see it:
+
+```powershell
+setx VCPKG_ROOT "%USERPROFILE%\vcpkg"
+```
+
+Verify in a fresh window: `echo $env:VCPKG_ROOT` should print the vcpkg path.
+
+### 3. Configure and build
 
 Linux/macOS:
 
@@ -93,12 +116,38 @@ cmake --preset=windows
 cmake --build build
 ```
 
-The first configure step downloads and builds the manifest dependencies into `build/vcpkg_installed/`.
+The first configure step downloads and builds the manifest dependencies into
+`build/vcpkg_installed/`.
 
 Artifacts are produced in `build/`:
 
 - `build/server` (Windows: `build/server.exe`)
 - `build/client` (Windows: `build/client.exe`)
+
+### Release builds
+
+The default presets build without optimization and, on Linux, embed DWARF debug
+info into the binaries. For a smaller, optimized binary use the release presets,
+which configure with `CMAKE_BUILD_TYPE=Release` and build into `build-release/`:
+
+Linux/macOS:
+
+```bash
+cmake --preset=linux-release
+cmake --build build-release
+```
+
+Windows (Developer PowerShell):
+
+```powershell
+cmake --preset=windows-release
+cmake --build build-release
+```
+
+On Linux the resulting binaries still carry debug symbols; strip them before
+distribution to shrink the executable (e.g. `strip build-release/server`). On
+Windows debug info already lives in a separate `.pdb`, so no strip step is
+needed.
 
 ## Usage
 
